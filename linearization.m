@@ -24,10 +24,10 @@ Tq0d=mac_con(:,14); % q-axis time constant
 %Tq0dd=mac_con(:,15); % q-axis subtransient time constant             unused
 H=mac_con(:,16).*BM; % Inertial constant
 D=mac_con(:,17).*BM; % damping
-M=2*H; 
+%D=[0;0;0]; 
 f=60; % 60Hz base frequency
 wB=2*pi*f; %base frequency in rad/s
-
+M=2.*H/wB;
 N_Machine=size(mac_con,1);
 
 %===========machine end=================
@@ -57,8 +57,8 @@ for i=1:len_exc
     KA(Exc_m_indx)=exc_con(i,4);
     E1(Exc_m_indx)=exc_con(i,12);
     E2(Exc_m_indx)=exc_con(i,14);
-    SEE1(Exc_m_indx)=exc_con(i,12);
-    SEE2(Exc_m_indx)=exc_con(i,14);
+    SEE1(Exc_m_indx)=exc_con(i,13);
+    SEE2(Exc_m_indx)=exc_con(i,15);
 end
 %================exciter end=================
 
@@ -134,6 +134,8 @@ for k=1:len_mac
         % calculate S_E(Efd)  and its derivative--page 70, equation 4.22
         Bxi = log(SEE1(i)/SEE2(i))/(E1(i)-E2(i));
         Axi = SEE1(i)/exp(Bxi*E1(i));
+%         Axi = 0.0039; 
+%         Bxi = 1.555;
         fsi = -(Ke(i)+Efd0(i)*Axi*Bxi*exp(Bxi*Efd0(i)) + Axi*exp(Bxi*Efd0(i)))/Te(i); 
         % get sub matrices
         % A1i, B1i, B2i, E1i (eqn 8.27), page 220
@@ -278,30 +280,28 @@ for l=1:len_mac
             end
             % d_Vi
             D4(2*l-1,2*k)= id0(p)*sin(delta0(p)-thg(p))+iq0(p)*cos(delta0(p)-thg(p))...
-                       - Vg(p)*abs(Ybus(m,m))*cos(thg(p)-thg(p)-angle(Ybus(m,m)))...
-                       +Pl(n)/Vg(p)+Vg(p)*real(Ybus(m,m));
+                       - Vg(p)*abs(Ybus(m,m))*cos(thg(p)-thg(p)-angle(Ybus(m,m)));
             D4(2*l,2*k)= -iq0(p)*sin(delta0(p)-thg(p))+id0(p)*cos(delta0(p)-thg(p))...
-                       - Vg(p)*abs(Ybus(m,m))*sin(thg(p)-thg(p)-angle(Ybus(m,m)))...
-                       +Ql(n)/Vg(p)-Vg(p)*imag(Ybus(m,m));
+                       - Vg(p)*abs(Ybus(m,m))*sin(thg(p)-thg(p)-angle(Ybus(m,m)));
             for kk = 1:nbus
                 D4(2*l-1,2*k)=D4(2*l-1,2*k) - Vbus(kk)*abs(Ybus(m,kk))*cos(thg(p)-theta(kk)-angle(Ybus(m,kk)));
                 D4(2*l,2*k)=D4(2*l,2*k)- Vbus(kk)*abs(Ybus(m,kk))*sin(thg(p)-theta(kk)-angle(Ybus(m,kk)));
             end
         else
-            D4(2*l-1,2*k-1) = -Vg(p)*Vg(q)*abs(Ybus(m,n))*sin(Vg(p)-Vg(q)-angle(Ybus(m,n)));
-            D4(2*l,2*k-1)= Vg(p)*Vg(q)*abs(Ybus(m,n))*cos(Vg(p)-Vg(q)-angle(Ybus(m,n)));
-            D4(2*l-1,2*k) = -Vg(p)*abs(Ybus(m,n))*cos(Vg(p)-Vg(q)-angle(Ybus(m,n)));
-            D4(2*l,2*k) =  -Vg(p)*abs(Ybus(m,n))*sin(Vg(p)-Vg(q)-angle(Ybus(m,n)));
+            D4(2*l-1,2*k-1) = -Vg(p)*Vg(q)*abs(Ybus(m,n))*sin(thg(p)-thg(q)-angle(Ybus(m,n)));
+            D4(2*l,2*k-1)= Vg(p)*Vg(q)*abs(Ybus(m,n))*cos(thg(p)-thg(q)-angle(Ybus(m,n)));
+            D4(2*l-1,2*k) = -Vg(p)*abs(Ybus(m,n))*cos(thg(p)-thg(q)-angle(Ybus(m,n)));
+            D4(2*l,2*k) =  -Vg(p)*abs(Ybus(m,n))*sin(thg(p)-thg(q)-angle(Ybus(m,n)));
         end
     
     end
     %D5 m x 2(nbus-len_mac)
-    for k=1:(nbus-len_mac)
-        kk = PQ(k);
-        D5(2*l-1,2*k-1) = -Vg(p)*Vbus(kk)*abs(Ybus(m,kk))*sin(Vg(p)-Vbus(kk)-angle(Ybus(m,kk)));
-        D5(2*l,2*k-1) = Vg(p)*Vbus(kk)*abs(Ybus(m,kk))*cos(Vg(p)-Vbus(kk)-angle(Ybus(m,kk)));
-        D5(2*l-1,2*k) = -Vg(p)*abs(Ybus(m,kk))*cos(Vg(p)-Vbus(kk)-angle(Ybus(m,kk)));
-        D5(2*l,2*k) = -Vg(p)*abs(Ybus(m,kk))*sin(Vg(p)-Vbus(kk)-angle(Ybus(m,kk)));
+    for kp=1:(nbus-len_mac)
+        kk = PQ(kp);
+        D5(2*l-1,2*kp-1) = -Vg(p)*Vbus(kk)*abs(Ybus(m,kk))*sin(thg(p)-theta(kk)-angle(Ybus(m,kk)));
+        D5(2*l,2*kp-1) = Vg(p)*Vbus(kk)*abs(Ybus(m,kk))*cos(thg(p)-theta(kk)-angle(Ybus(m,kk)));
+        D5(2*l-1,2*kp) = -Vg(p)*abs(Ybus(m,kk))*cos(thg(p)-theta(kk)-angle(Ybus(m,kk)));
+        D5(2*l,2*kp) = -Vg(p)*abs(Ybus(m,kk))*sin(thg(p)-theta(kk)-angle(Ybus(m,kk)));
     end
     %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 end
@@ -309,32 +309,31 @@ D6=zeros(2*(nbus-len_mac),2*len_mac);
 D7=zeros(2*(nbus-len_mac),2*(nbus-len_mac));
 % D6, D7 (eqn 8.40)
 for l=1:(nbus-len_mac)
-    % D6 npq x 2npv
+    % D6 2npq x 2npv
     m = PQ(l); % index of PQ bus
-    for k = 1:len_mac
-        n = PV(k);
-        D6(2*l-1,2*k-1)=Vbus(m)*Vbus(n)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)));
-        D6(2*l,2*k-1)= -Vbus(m)*Vbus(n)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)));
-        D6(2*l-1,2*k)=-Vbus(m)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)));
-        D6(2*l,2*k)=-Vbus(m)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)));
+    for kg = 1:len_mac
+        n = PV(kg);
+        D6(2*l-1,2*kg-1)=-Vbus(m)*Vbus(n)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)));
+        D6(2*l,2*kg-1)= Vbus(m)*Vbus(n)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)));
+        D6(2*l-1,2*kg)=-Vbus(m)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)));
+        D6(2*l,2*kg)=-Vbus(m)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)));
     end
-    % D7 npq x 2npq
+    % D7 2npq x 2npq
     for k = 1:(nbus-len_mac)
         n = PQ(k);
         if m == n
             for kk = 1:nbus
+              %d_theta  
             if kk ~= m
                 D7(2*l-1,2*k-1)= D7(2*l-1,2*k-1)+ Vbus(m)*Vbus(kk)*abs(Ybus(m,kk))*sin(theta(m)-theta(kk)-angle(Ybus(m,kk)));
-                D7(2*l,2*k-1)= D7(2*l,2*k-1)-Vbus(m)*Vbus(kk)*abs(Ybus(m,kk))*cos(theta(m)-theta(n)-angle(Ybus(m,kk)));
+                D7(2*l,2*k-1)= D7(2*l,2*k-1)-Vbus(m)*Vbus(kk)*abs(Ybus(m,kk))*cos(theta(m)-theta(kk)-angle(Ybus(m,kk)));
             end
             end
-            D7(2*l-1,2*k)= -Vbus(m)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)))...
-                  +Pl(n)/Vbus(n)+Vbus(n)*real(Ybus(n,n));
-            D7(2*l,2*k)= -Vbus(m)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)))...
-                      +Ql(n)/Vbus(n)-Vbus(n)*imag(Ybus(n,n));  
+            D7(2*l-1,2*k)= -Vbus(m)*abs(Ybus(m,n))*cos(theta(m)-theta(n)-angle(Ybus(m,n)));
+            D7(2*l,2*k)= -Vbus(m)*abs(Ybus(m,n))*sin(theta(m)-theta(n)-angle(Ybus(m,n)));  
               for kk = 1:nbus
                   D7(2*l-1,2*k)= D7(2*l-1,2*k) - Vbus(kk)*abs(Ybus(m,kk))*cos(theta(m)-theta(kk)-angle(Ybus(m,kk)));
-                  D7(2*l,2*k)= D7(2*l,2*k) -Vbus(kk)*abs(Ybus(m,kk))*cos(theta(m)-theta(kk)-angle(Ybus(m,kk)));
+                  D7(2*l,2*k)= D7(2*l,2*k) -Vbus(kk)*abs(Ybus(m,kk))*sin(theta(m)-theta(kk)-angle(Ybus(m,kk)));
               end
         else
             D7(2*l-1,2*k-1)= -Vbus(m)*Vbus(n)*abs(Ybus(m,n))* sin(theta(m)-theta(n)-angle(Ybus(m,n)));
@@ -344,19 +343,8 @@ for l=1:(nbus-len_mac)
         end
     end
 end
-% eliminate Ig, get K1, K2... (eqn 8.49-51)
-K1 = D4-D3*inv(D1)*D2;
-K2 = C2-D3*inv(D1)*C1;
-% get Asys, Kron reduction 
-%  x   =    Aprime Bprime  x    +   E1   u
-%  0        Cprime Dprime  VN       0
-Aprime = A1-B1*inv(D1)*C1;
-Bprime = [B2-B1*inv(D1)*D2 zeros(size(A1,1),size(D5,2))];
-Cprime = [K2;
-          zeros(size(D7,1),size(A1,2));];
-Dprime = [K1 D5;
-          D6 D7;];
-Asys = Aprime - Bprime*inv(Dprime)* Cprime;
+% Get Asys
+Asys = A1-B1*inv(D1)*C1-(B2-B1*inv(D1)*D2)*inv(D4-D3*inv(D1)*D2-D5*inv(D7)*D6)*(C2-D3*inv(D1)*C1);
 % get B matrix for different setup
 Bsys= E_1;
 

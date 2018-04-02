@@ -3,10 +3,12 @@ clear all;
 
 %% initialize variables;
 global Ybus nbus sys_base
-nbus=39;
+
 sys_base=100;%MVA
 run data_ne;
-
+nbus=39;
+% run d9bus;
+% nbus=9;
 %% solve ybus
 Ybus=ybus;
 
